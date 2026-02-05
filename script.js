@@ -221,10 +221,24 @@ function renderDashboard() {
   const totalAmount = lists.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
   const totalPaid = lists.reduce((s, l) => s + (parseFloat(l.paid) || 0), 0);
 
+  const openingBalanceIQD = suppliers.reduce((sum, sup) => {
+    if (sup.openingBalance && (sup.openingBalanceCurrency || 'IQD') === 'IQD') {
+      return sum + (parseFloat(sup.openingBalance) || 0);
+    }
+    return sum;
+  }, 0);
+
+  const openingBalanceUSD = suppliers.reduce((sum, sup) => {
+    if (sup.openingBalance && (sup.openingBalanceCurrency || 'IQD') === 'USD') {
+      return sum + (parseFloat(sup.openingBalance) || 0);
+    }
+    return sum;
+  }, 0);
+
   const listsIQD = lists.filter((l) => (l.currency || 'IQD') === 'IQD');
   const totalAmountIQD = listsIQD.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
   const totalPaidIQD = listsIQD.reduce((s, l) => s + (parseFloat(l.paid) || 0), 0);
-  const remainingIQD = totalAmountIQD - totalPaidIQD;
+  const remainingIQD = openingBalanceIQD + totalAmountIQD - totalPaidIQD;
 
   const totalUSD = lists.filter((l) => (l.currency || 'IQD') === 'USD').reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
   const paidUSDFromLists = lists.filter((l) => (l.currency || 'IQD') === 'USD').reduce((s, l) => s + (parseFloat(l.paid) || 0), 0);
@@ -233,7 +247,7 @@ function renderDashboard() {
     return s + sup.payments.filter((p) => (p.currency || 'IQD') === 'USD').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
   }, 0);
   const paidUSD = paidUSDFromLists + paidUSDFromSuppliers;
-  const remainingUSD = totalUSD - paidUSD;
+  const remainingUSD = openingBalanceUSD + totalUSD - paidUSD;
 
   const statSuppliers = document.getElementById('statSuppliers');
   const statLists = document.getElementById('statLists');
