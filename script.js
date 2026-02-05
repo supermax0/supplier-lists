@@ -369,6 +369,7 @@ function renderSuppliersTable(searchQuery) {
       <td class="actions-cell">
         <button type="button" class="btn btn-sm btn-primary supplier-detail-btn" data-id="${escapeHtml(s.id)}" title="تفاصيل المورد">تفاصيل</button>
         <button type="button" class="btn btn-sm btn-success supplier-pay-btn" data-id="${escapeHtml(s.id)}" title="دفع جزئي للمورد">دفع للمورد</button>
+        <button type="button" class="btn btn-sm btn-danger supplier-delete-btn" data-id="${escapeHtml(s.id)}" title="حذف المورد">حذف</button>
       </td>
     </tr>
   `;
@@ -379,6 +380,9 @@ function renderSuppliersTable(searchQuery) {
   });
   tbody.querySelectorAll('.supplier-pay-btn').forEach((btn) => {
     btn.addEventListener('click', () => openSupplierPaymentModal(btn.dataset.id));
+  });
+  tbody.querySelectorAll('.supplier-delete-btn').forEach((btn) => {
+    btn.addEventListener('click', () => deleteSupplier(btn.dataset.id));
   });
 }
 
@@ -872,6 +876,23 @@ function deleteList(id) {
   renderDashboard();
 }
 
+function deleteSupplier(supplierId) {
+  const supplier = getSuppliers().find((s) => s.id === supplierId);
+  if (!supplier) return;
+  const lists = getLists().filter((l) => l.supplierId === supplierId);
+  const listsCount = lists.length;
+  let message = 'هل تريد حذف المورد "' + (supplier.name || '') + '"؟';
+  if (listsCount > 0) {
+    message += '\n\nتحذير: يوجد ' + listsCount + ' قائمة مرتبطة بهذا المورد. سيتم حذف المورد فقط (القوائم ستبقى موجودة).';
+  }
+  if (!confirm(message)) return;
+  const suppliers = getSuppliers().filter((s) => s.id !== supplierId);
+  setSuppliers(suppliers);
+  addActivity('delete', 'حذف مورد: ' + (supplier.name || ''), '');
+  renderSuppliersTable(document.getElementById('suppliersSearch')?.value);
+  renderDashboard();
+}
+
 function openPaymentModal(listId) {
   const list = getLists().find(l => l.id === listId);
   if (!list) return;
@@ -1238,12 +1259,92 @@ document.getElementById('addListForm')?.addEventListener('submit', function(e) {
   }
 });
 
+/* ===== Authentication ===== */
+const LOGIN_PASSWORD = '112233'; // كلمة المرور الافتراضية - يمكن تغييرها
+
+function checkAuth() {
+  const isLoggedIn = sessionStorage.getItem('قوائم_loggedIn') === 'true';
+  return isLoggedIn;
+}
+
+function setAuth(loggedIn) {
+  if (loggedIn) {
+    sessionStorage.setItem('قوائم_loggedIn', 'true');
+  } else {
+    sessionStorage.removeItem('قوائم_loggedIn');
+  }
+}
+
+function showLogin() {
+  const loginPage = document.getElementById('loginPage');
+  const app = document.getElementById('app');
+  if (loginPage) loginPage.style.display = 'flex';
+  if (app) app.style.display = 'none';
+}
+
+function showApp() {
+  const loginPage = document.getElementById('loginPage');
+  const app = document.getElementById('app');
+  if (loginPage) loginPage.style.display = 'none';
+  if (app) app.style.display = 'flex';
+}
+
+function handleLogin(password) {
+  if (password === LOGIN_PASSWORD) {
+    setAuth(true);
+    showApp();
+    const errorEl = document.getElementById('loginError');
+    if (errorEl) errorEl.style.display = 'none';
+    loadDataFromFirebase().then(function() {
+      fillSupplierSelect();
+      renderDashboard();
+      initNavigation();
+      bindSearch();
+    });
+    return true;
+  } else {
+    const errorEl = document.getElementById('loginError');
+    if (errorEl) {
+      errorEl.textContent = 'كلمة المرور غير صحيحة';
+      errorEl.style.display = 'block';
+    }
+    return false;
+  }
+}
+
+function handleLogout() {
+  setAuth(false);
+  showLogin();
+  const passwordInput = document.getElementById('loginPassword');
+  if (passwordInput) passwordInput.value = '';
+  const errorEl = document.getElementById('loginError');
+  if (errorEl) errorEl.style.display = 'none';
+}
+
+document.getElementById('loginForm')?.addEventListener('submit', function(e) {
+  e.preventDefault();
+  const password = document.getElementById('loginPassword')?.value || '';
+  handleLogin(password);
+});
+
+document.getElementById('logoutBtn')?.addEventListener('click', function(e) {
+  e.preventDefault();
+  if (confirm('هل تريد تسجيل الخروج؟')) {
+    handleLogout();
+  }
+});
+
 /* ===== Init ===== */
 (function init() {
-  loadDataFromFirebase().then(function() {
-    fillSupplierSelect();
-    renderDashboard();
-    initNavigation();
-    bindSearch();
-  });
+  if (!checkAuth()) {
+    showLogin();
+  } else {
+    showApp();
+    loadDataFromFirebase().then(function() {
+      fillSupplierSelect();
+      renderDashboard();
+      initNavigation();
+      bindSearch();
+    });
+  }
 })();
