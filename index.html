@@ -10,7 +10,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="app">
+  <!-- Login Page -->
+  <div id="loginPage" class="login-page">
+    <div class="login-container">
+      <div class="login-card">
+        <h1 class="login-logo">قوائم</h1>
+        <h2 class="login-title">تسجيل الدخول</h2>
+        <form id="loginForm" class="login-form">
+          <div class="form-group">
+            <label for="loginPassword">كلمة المرور</label>
+            <input type="password" id="loginPassword" required autofocus placeholder="أدخل كلمة المرور">
+          </div>
+          <button type="submit" class="btn btn-primary login-submit">دخول</button>
+          <p id="loginError" class="login-error" style="display: none;"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="app" id="app" style="display: none;">
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
@@ -41,6 +59,10 @@
         <a href="#transactions" class="nav-item" data-page="transactions">
           <span class="nav-icon">🔄</span>
           <span>الحركات والنشاط</span>
+        </a>
+        <a href="#" class="nav-item" id="logoutBtn" style="margin-top: auto; border-top: 1px solid var(--border-light); padding-top: var(--space-sm);">
+          <span class="nav-icon">🚪</span>
+          <span>تسجيل الخروج</span>
         </a>
       </nav>
     </aside>
