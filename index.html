@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام إدارة القوائم والموردين</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Login Page -->
+  <div id="loginPage" class="login-page">
+    <div class="login-container">
+      <div class="login-card">
+        <h1 class="login-logo">قوائم</h1>
+        <h2 class="login-title">تسجيل الدخول</h2>
+        <form id="loginForm" class="login-form">
+          <div class="form-group">
+            <label for="loginPassword">كلمة المرور</label>
+            <input type="password" id="loginPassword" required autofocus placeholder="أدخل كلمة المرور">
+          </div>
+          <button type="submit" class="btn btn-primary login-submit">دخول</button>
+          <p id="loginError" class="login-error" style="display: none;"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="app" id="app" style="display: none;">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h1 class="logo">قوائم</h1>
+        <button class="sidebar-close" id="sidebarClose" aria-label="إغلاق القائمة">×</button>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#dashboard" class="nav-item active" data-page="dashboard">
+          <span class="nav-icon">📊</span>
+          <span>لوحة التحكم</span>
+        </a>
+        <a href="#suppliers" class="nav-item" data-page="suppliers">
+          <span class="nav-icon">🏢</span>
+          <span>الموردين</span>
+        </a>
+        <a href="#add-supplier" class="nav-item" data-page="add-supplier">
+          <span class="nav-icon">➕</span>
+          <span>إضافة مورد</span>
+        </a>
+        <a href="#add-list" class="nav-item" data-page="add-list">
+          <span class="nav-icon">📝</span>
+          <span>إضافة قائمة شراء</span>
+        </a>
+        <a href="#lists" class="nav-item" data-page="lists">
+          <span class="nav-icon">📋</span>
+          <span>عرض القوائم</span>
+        </a>
+        <a href="#transactions" class="nav-item" data-page="transactions">
+          <span class="nav-icon">🔄</span>
+          <span>الحركات والنشاط</span>
+        </a>
+        <a href="#" class="nav-item" id="logoutBtn" style="margin-top: auto; border-top: 1px solid var(--border-light); padding-top: var(--space-sm);">
+          <span class="nav-icon">🚪</span>
+          <span>تسجيل الخروج</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main content -->
+    <main class="main">
+      <header class="header">
+        <button class="menu-btn" id="menuBtn" aria-label="فتح القائمة">☰</button>
+        <h2 class="page-title" id="pageTitle">لوحة التحكم</h2>
+      </header>
+
+      <div class="content">
+        <!-- Dashboard -->
+        <section id="dashboard" class="page active">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-value" id="statSuppliers">0</span>
+              <span class="stat-label">الموردين</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" id="statLists">0</span>
+              <span class="stat-label">القوائم</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" id="statTotalAmount">0</span>
+              <span class="stat-label">إجمالي المبالغ (صافي: الرصيد الافتتاحي + الإجمالي − المدفوع)</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" id="statPaid">0</span>
+              <span class="stat-label">المدفوع</span>
+            </div>
+            <div class="stat-card stat-usd">
+              <span class="stat-value" id="statTotalUSD">0</span>
+              <span class="stat-label">إجمالي (دولار) صافي: الرصيد الافتتاحي + الإجمالي − المدفوع</span>
+            </div>
+            <div class="stat-card stat-usd">
+              <span class="stat-value" id="statPaidUSD">0</span>
+              <span class="stat-label">المدفوع (دولار)</span>
+            </div>
+          </div>
+          <div class="card">
+            <h3>آخر القوائم</h3>
+            <div class="recent-lists" id="recentLists">
+              <p class="empty-msg">لا توجد قوائم حديثة</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Suppliers list -->
+        <section id="suppliers" class="page">
+          <div class="card">
+            <h3>قائمة الموردين</h3>
+            <div class="search-wrap">
+              <input type="search" id="suppliersSearch" class="search-input" placeholder="بحث (الاسم، الهاتف، العنوان)" aria-label="بحث في الموردين">
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>الاسم</th>
+                    <th>رقم الهاتف</th>
+                    <th>العنوان</th>
+                    <th>الرصيد الافتتاحي</th>
+                    <th>إجمالي القوائم</th>
+                    <th>المدفوع</th>
+                    <th>المتبقي</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="suppliersTableBody">
+                  <tr><td colspan="8" class="empty-cell">لا يوجد موردين</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Add Supplier -->
+        <section id="add-supplier" class="page">
+          <div class="card form-card">
+            <h3>إضافة مورد جديد</h3>
+            <form id="addSupplierForm" class="form">
+              <div class="form-group">
+                <label for="supplierName">الاسم</label>
+                <input type="text" id="supplierName" required placeholder="اسم المورد">
+              </div>
+              <div class="form-group">
+                <label for="supplierPhone">رقم الهاتف (11 رقمًا كحد أقصى)</label>
+                <input type="tel" id="supplierPhone" required placeholder="07xxxxxxxxx" maxlength="11" inputmode="numeric" pattern="[0-9]*">
+              </div>
+              <div class="form-group">
+                <label for="supplierAddress">العنوان</label>
+                <input type="text" id="supplierAddress" required placeholder="العنوان الكامل">
+              </div>
+              <div class="form-group">
+                <label for="supplierOpeningBalance">رصيد افتتاحي (اختياري)</label>
+                <div class="inline-fields">
+                  <input type="number" id="supplierOpeningBalance" min="0" step="0.01" value="0" placeholder="0">
+                  <select id="supplierOpeningBalanceCurrency">
+                    <option value="IQD">د.ع</option>
+                    <option value="USD">دولار</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">حفظ المورد</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- Add Purchase List -->
+        <section id="add-list" class="page">
+          <div class="card form-card">
+            <h3>إضافة قائمة شراء</h3>
+            <form id="addListForm" class="form">
+              <div class="form-group">
+                <label for="listSupplier">اختيار المورد</label>
+                <select id="listSupplier" required>
+                  <option value="">-- اختر المورد --</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="listNumber">رقم القائمة</label>
+                <input type="text" id="listNumber" required placeholder="مثال: L-001">
+              </div>
+              <div class="form-group">
+                <label for="listCurrency">العملة</label>
+                <select id="listCurrency">
+                  <option value="IQD">د.ع — دينار عراقي</option>
+                  <option value="USD">دولار أمريكي</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>نوع المنتج</label>
+                <div class="product-row product-row-header">
+                  <span class="product-col-type">نوع المنتج</span>
+                  <span class="product-col-qty">الكمية</span>
+                  <span class="product-col-price">سعر المفرد</span>
+                  <span class="product-col-total">المجموع</span>
+                  <span class="product-col-action"></span>
+                </div>
+                <div id="productFieldsContainer">
+                  <div class="product-row" data-index="0">
+                    <input type="text" class="product-type product-col-type" placeholder="نوع المنتج">
+                    <input type="number" class="product-quantity product-col-qty" min="0" step="1" value="1" placeholder="0">
+                    <input type="number" class="product-unit-price product-col-price" min="0" step="0.01" value="0" placeholder="0.00">
+                    <span class="product-total product-col-total">0.00</span>
+                    <button type="button" class="btn-icon remove-product product-col-action" title="حذف">−</button>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-outline add-product-btn" id="addProductRow">+ إضافة نوع منتج</button>
+              </div>
+              <div class="form-group">
+                <label for="listAmount" id="listAmountLabel">مبلغ القائمة — مجمع من المنتجات</label>
+                <input type="text" id="listAmount" readonly class="list-amount-readonly" value="0.00" dir="ltr">
+              </div>
+              <div class="form-group">
+                <label for="listImage">إرفاق صورة للقائمة</label>
+                <div class="image-options">
+                  <input type="file" id="listImage" accept="image/*" class="file-input">
+                  <button type="button" class="btn btn-outline" id="captureImageBtn">📷 التقاط صورة</button>
+                </div>
+                <div class="image-preview" id="listImagePreview"></div>
+              </div>
+              <button type="submit" class="btn btn-primary">حفظ القائمة</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- Lists table -->
+        <section id="lists" class="page">
+          <div class="card">
+            <h3>عرض القوائم</h3>
+            <div class="search-wrap">
+              <input type="search" id="listsSearch" class="search-input" placeholder="بحث (المورد، رقم القائمة، المبلغ)" aria-label="بحث في القوائم">
+            </div>
+            <div class="table-wrap table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>المورد</th>
+                    <th>رقم القائمة</th>
+                    <th>التاريخ</th>
+                    <th>المبلغ</th>
+                    <th>المدفوع</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="listsTableBody">
+                  <tr><td colspan="6" class="empty-cell">لا توجد قوائم</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Transactions / Activity -->
+        <section id="transactions" class="page">
+          <div class="card">
+            <h3>الحركات والنشاط</h3>
+            <div class="search-wrap">
+              <input type="search" id="activitySearch" class="search-input" placeholder="بحث في الحركات" aria-label="بحث في الحركات">
+            </div>
+            <div class="activity-list" id="activityList">
+              <p class="empty-msg">لا توجد حركات</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Bottom nav (mobile) -->
+      <nav class="bottom-nav" id="bottomNav">
+        <a href="#dashboard" class="bottom-nav-item" data-page="dashboard">📊</a>
+        <a href="#add-supplier" class="bottom-nav-item" data-page="add-supplier">➕</a>
+        <a href="#add-list" class="bottom-nav-item" data-page="add-list">📝</a>
+        <a href="#lists" class="bottom-nav-item" data-page="lists">📋</a>
+        <a href="#transactions" class="bottom-nav-item" data-page="transactions">🔄</a>
+      </nav>
+    </main>
+  </div>
+
+  <!-- Modal: Partial payment -->
+  <div class="modal" id="paymentModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>دفع جزئي</h3>
+        <button class="modal-close" id="paymentModalClose">×</button>
+      </div>
+      <form id="paymentForm">
+        <input type="hidden" id="paymentListId">
+        <div class="form-group">
+          <label for="paymentAmount">المبلغ</label>
+          <input type="number" id="paymentAmount" min="0" step="0.01" required>
+        </div>
+        <button type="submit" class="btn btn-primary">تسجيل الدفع</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: التقاط صورة -->
+  <div class="modal" id="captureImageModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>التقاط صورة</h3>
+        <button class="modal-close" id="captureImageModalClose" type="button">×</button>
+      </div>
+      <div class="capture-body">
+        <video id="captureVideo" autoplay playsinline muted></video>
+        <div class="capture-actions">
+          <button type="button" class="btn btn-primary" id="captureTakeBtn">التقط</button>
+          <button type="button" class="btn btn-outline" id="captureCancelBtn">إلغاء</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: دفع جزئي للمورد -->
+  <div class="modal" id="supplierPaymentModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>دفع جزئي للمورد</h3>
+        <button class="modal-close" id="supplierPaymentModalClose">×</button>
+      </div>
+      <form id="supplierPaymentForm">
+        <input type="hidden" id="supplierPaymentId">
+        <p class="modal-supplier-name" id="supplierPaymentName"></p>
+        <div class="form-group">
+          <label for="supplierPaymentCurrency">العملة</label>
+          <select id="supplierPaymentCurrency">
+            <option value="IQD">د.ع</option>
+            <option value="USD">دولار</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="supplierPaymentAmount">المبلغ</label>
+          <input type="number" id="supplierPaymentAmount" min="0" step="0.01" required placeholder="0.00">
+        </div>
+        <button type="submit" class="btn btn-primary">تسجيل الدفع</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: تعديل مورد -->
+  <div class="modal" id="editSupplierModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>✏️ تعديل مورد</h3>
+        <button class="modal-close" id="editSupplierModalClose">×</button>
+      </div>
+      <form id="editSupplierForm" class="form">
+        <input type="hidden" id="editSupplierId">
+        <div class="form-group">
+          <label for="editSupplierName">الاسم</label>
+          <input type="text" id="editSupplierName" required placeholder="اسم المورد">
+        </div>
+        <div class="form-group">
+          <label for="editSupplierPhone">رقم الهاتف (11 رقمًا كحد أقصى)</label>
+          <input type="tel" id="editSupplierPhone" required placeholder="07xxxxxxxxx" maxlength="11" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <div class="form-group">
+          <label for="editSupplierAddress">العنوان</label>
+          <input type="text" id="editSupplierAddress" required placeholder="العنوان الكامل">
+        </div>
+        <div class="form-group">
+          <label for="editSupplierOpeningBalance">رصيد افتتاحي (اختياري)</label>
+          <div class="inline-fields">
+            <input type="number" id="editSupplierOpeningBalance" min="0" step="0.01" value="0" placeholder="0">
+            <select id="editSupplierOpeningBalanceCurrency">
+              <option value="IQD">د.ع</option>
+              <option value="USD">دولار</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" id="editSupplierCancelBtn">إلغاء</button>
+          <button type="submit" class="btn btn-primary">💾 حفظ التعديلات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: List details (image + products) -->
+  <div class="modal" id="listDetailModal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>تفاصيل القائمة</h3>
+        <div class="modal-header-actions">
+          <button type="button" class="btn btn-sm btn-primary" id="listDetailPrintBtn" title="طباعة">🖨️ طباعة</button>
+          <button class="modal-close" id="listDetailModalClose">×</button>
+        </div>
+      </div>
+      <div id="listDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- Modal: تفاصيل المورد (القوائم والدفعات) -->
+  <div class="modal" id="supplierDetailModal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>تفاصيل المورد</h3>
+        <div class="modal-header-actions">
+          <button type="button" class="btn btn-sm btn-primary" id="supplierDetailPrintBtn" title="طباعة">🖨️ طباعة</button>
+          <button class="modal-close" id="supplierDetailModalClose">×</button>
+        </div>
+      </div>
+      <div id="supplierDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- منطقة الطباعة (مخفية، تظهر عند الطباعة فقط) -->
+  <div id="printArea" class="print-area"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
