@@ -18,7 +18,7 @@ function getSuppliers() {
 function setSuppliers(arr) {
   _suppliers = Array.isArray(arr) ? arr : [];
   const db = getDb();
-  if (db) db.ref('suppliers').set(_suppliers).catch(function(err) { console.warn('Firebase setSuppliers:', err); });
+  if (db) db.ref('suppliers').set(_suppliers).catch(function (err) { console.warn('Firebase setSuppliers:', err); });
 }
 
 function getLists() {
@@ -28,7 +28,7 @@ function getLists() {
 function setLists(arr) {
   _lists = Array.isArray(arr) ? arr : [];
   const db = getDb();
-  if (db) db.ref('lists').set(_lists).catch(function(err) { console.warn('Firebase setLists:', err); });
+  if (db) db.ref('lists').set(_lists).catch(function (err) { console.warn('Firebase setLists:', err); });
 }
 
 function getActivity() {
@@ -38,7 +38,7 @@ function getActivity() {
 function setActivity(arr) {
   _activity = Array.isArray(arr) ? arr : [];
   const db = getDb();
-  if (db) db.ref('activity').set(_activity).catch(function(err) { console.warn('Firebase setActivity:', err); });
+  if (db) db.ref('activity').set(_activity).catch(function (err) { console.warn('Firebase setActivity:', err); });
 }
 
 function addActivity(type, title, meta) {
@@ -54,17 +54,17 @@ function addActivity(type, title, meta) {
 }
 
 function loadDataFromFirebase() {
-  return new Promise(function(resolve) {
+  return new Promise(function (resolve) {
     const db = getDb();
     if (!db) {
       resolve();
       return;
     }
     Promise.all([
-      db.ref('suppliers').once('value').then(function(snap) { _suppliers = snap.val() || []; }),
-      db.ref('lists').once('value').then(function(snap) { _lists = snap.val() || []; }),
-      db.ref('activity').once('value').then(function(snap) { _activity = snap.val() || []; })
-    ]).then(resolve).catch(function(err) {
+      db.ref('suppliers').once('value').then(function (snap) { _suppliers = snap.val() || []; }),
+      db.ref('lists').once('value').then(function (snap) { _lists = snap.val() || []; }),
+      db.ref('activity').once('value').then(function (snap) { _activity = snap.val() || []; })
+    ]).then(resolve).catch(function (err) {
       console.warn('Firebase loadData:', err);
       resolve();
     });
@@ -89,9 +89,9 @@ function uploadListImage(dataUrlOrBlob) {
     : dataUrlOrBlob;
   const ext = (blob.type || '').indexOf('png') !== -1 ? 'png' : 'jpg';
   const path = 'lists/' + generateId() + '.' + ext;
-  return storage.ref(path).put(blob).then(function(snap) {
+  return storage.ref(path).put(blob).then(function (snap) {
     return snap.ref.getDownloadURL();
-  }).catch(function(err) {
+  }).catch(function (err) {
     console.warn('Firebase Storage upload:', err);
     return '';
   });
@@ -237,7 +237,17 @@ function renderDashboard() {
 
   const listsIQD = lists.filter((l) => (l.currency || 'IQD') === 'IQD');
   const totalAmountIQD = listsIQD.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
-  const totalPaidIQD = listsIQD.reduce((s, l) => s + (parseFloat(l.paid) || 0), 0);
+
+  // Paid from lists (IQD)
+  const paidFromListsIQD = listsIQD.reduce((s, l) => s + (parseFloat(l.paid) || 0), 0);
+
+  // Paid directly to suppliers (IQD)
+  const paidFromSuppliersIQD = suppliers.reduce((s, sup) => {
+    if (!sup.payments || !sup.payments.length) return s;
+    return s + sup.payments.filter((p) => (p.currency || 'IQD') === 'IQD').reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+  }, 0);
+
+  const totalPaidIQD = paidFromListsIQD + paidFromSuppliersIQD;
   const remainingIQD = openingBalanceIQD + totalAmountIQD - totalPaidIQD;
 
   const totalUSD = lists.filter((l) => (l.currency || 'IQD') === 'USD').reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
@@ -260,7 +270,7 @@ function renderDashboard() {
   if (statSuppliers) statSuppliers.textContent = suppliers.length;
   if (statLists) statLists.textContent = lists.length;
   if (statTotalAmount) statTotalAmount.textContent = remainingIQD.toFixed(2);
-  if (statPaid) statPaid.textContent = totalPaid.toFixed(2);
+  if (statPaid) statPaid.textContent = totalPaidIQD.toFixed(2);
   if (statTotalUSD) statTotalUSD.textContent = remainingUSD.toFixed(2);
   if (statPaidUSD) statPaidUSD.textContent = paidUSD.toFixed(2);
 
@@ -1008,7 +1018,7 @@ function showListDetail(listId) {
     html += '<p class="empty-msg">لا توجد دفعات مسجلة</p>';
   } else {
     html += '<table class="detail-products-table detail-payments-table"><thead><tr><th>التاريخ</th><th>الوقت</th><th>المبلغ</th></tr></thead><tbody>';
-    payments.forEach(function(p) {
+    payments.forEach(function (p) {
       const d = new Date(p.date);
       const dateStr = d.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
       const timeStr = d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -1098,7 +1108,7 @@ function printListDetail() {
     html += '<p class="print-empty">لا توجد دفعات مسجلة</p>';
   } else {
     html += '<table class="print-table"><thead><tr><th>#</th><th>التاريخ</th><th>الوقت</th><th>المبلغ</th></tr></thead><tbody>';
-    payments.forEach(function(p, i) {
+    payments.forEach(function (p, i) {
       const d = new Date(p.date);
       const dateStr = d.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
       const timeStr = d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -1224,7 +1234,7 @@ function bindSearch() {
 }
 
 /* ===== Add List Form (single handler) ===== */
-document.getElementById('addListForm')?.addEventListener('submit', function(e) {
+document.getElementById('addListForm')?.addEventListener('submit', function (e) {
   e.preventDefault();
   const supplierId = document.getElementById('listSupplier').value;
   const number = document.getElementById('listNumber').value.trim();
@@ -1285,7 +1295,7 @@ document.getElementById('addListForm')?.addEventListener('submit', function(e) {
           <button type="button" class="btn-icon remove-product product-col-action" title="حذف">−</button>
         </div>
       `;
-      container.querySelector('.remove-product').addEventListener('click', function() {
+      container.querySelector('.remove-product').addEventListener('click', function () {
         if (container.querySelectorAll('.product-row').length > 1) {
           this.closest('.product-row').remove();
           updateProductTotals();
@@ -1301,10 +1311,10 @@ document.getElementById('addListForm')?.addEventListener('submit', function(e) {
   if (capturedListImageData) {
     const btn = form.querySelector('button[type="submit"]');
     if (btn) { btn.disabled = true; btn.textContent = 'جاري رفع الصورة والحفظ...'; }
-    uploadListImage(capturedListImageData).then(function(url) {
+    uploadListImage(capturedListImageData).then(function (url) {
       doSubmit(url || '');
       if (btn) { btn.disabled = false; btn.textContent = 'حفظ القائمة'; }
-    }).catch(function() {
+    }).catch(function () {
       doSubmit('');
       if (btn) { btn.disabled = false; btn.textContent = 'حفظ القائمة'; }
     });
@@ -1312,11 +1322,11 @@ document.getElementById('addListForm')?.addEventListener('submit', function(e) {
     const reader = new FileReader();
     const btn = form.querySelector('button[type="submit"]');
     if (btn) { btn.disabled = true; btn.textContent = 'جاري رفع الصورة والحفظ...'; }
-    reader.onload = function() {
-      uploadListImage(reader.result).then(function(url) {
+    reader.onload = function () {
+      uploadListImage(reader.result).then(function (url) {
         doSubmit(url || '');
         if (btn) { btn.disabled = false; btn.textContent = 'حفظ القائمة'; }
-      }).catch(function() {
+      }).catch(function () {
         doSubmit('');
         if (btn) { btn.disabled = false; btn.textContent = 'حفظ القائمة'; }
       });
@@ -1363,7 +1373,7 @@ function handleLogin(password) {
     showApp();
     const errorEl = document.getElementById('loginError');
     if (errorEl) errorEl.style.display = 'none';
-    loadDataFromFirebase().then(function() {
+    loadDataFromFirebase().then(function () {
       fillSupplierSelect();
       renderDashboard();
       initNavigation();
@@ -1389,13 +1399,13 @@ function handleLogout() {
   if (errorEl) errorEl.style.display = 'none';
 }
 
-document.getElementById('loginForm')?.addEventListener('submit', function(e) {
+document.getElementById('loginForm')?.addEventListener('submit', function (e) {
   e.preventDefault();
   const password = document.getElementById('loginPassword')?.value || '';
   handleLogin(password);
 });
 
-document.getElementById('logoutBtn')?.addEventListener('click', function(e) {
+document.getElementById('logoutBtn')?.addEventListener('click', function (e) {
   e.preventDefault();
   if (confirm('هل تريد تسجيل الخروج؟')) {
     handleLogout();
@@ -1408,7 +1418,7 @@ document.getElementById('logoutBtn')?.addEventListener('click', function(e) {
     showLogin();
   } else {
     showApp();
-    loadDataFromFirebase().then(function() {
+    loadDataFromFirebase().then(function () {
       fillSupplierSelect();
       renderDashboard();
       initNavigation();
